@@ -23,6 +23,7 @@ interface EndpointConfig {
   llmTip?: string;
   skipEncoding?: string[]; // Parameter names that should NOT be URL-encoded (for function-style API calls)
   contentType?: string;
+  returnsAttachments?: boolean; // Response contains attachment objects with contentBytes to return as resource parts
 }
 
 const endpointsData = JSON.parse(
@@ -81,6 +82,61 @@ interface CallToolResult {
   isError?: boolean;
 
   [key: string]: unknown;
+}
+
+export function extractAttachmentResources(
+  data: unknown,
+  params: Record<string, unknown>
+): ContentItem[] {
+  const content: ContentItem[] = [];
+  const dataObj = data as Record<string, unknown>;
+  const attachments: Record<string, unknown>[] = [];
+
+  if (Array.isArray(dataObj.value)) {
+    attachments.push(...(dataObj.value as Record<string, unknown>[]));
+  } else if (dataObj.id && dataObj.name) {
+    attachments.push(dataObj);
+  }
+
+  if (attachments.length === 0) {
+    return [{ type: 'text', text: JSON.stringify(data, null, 2) }];
+  }
+
+  for (const attachment of attachments) {
+    const contentBytes = attachment.contentBytes as string | undefined;
+    const name = (attachment.name as string) || 'unknown';
+    const contentType = (attachment.contentType as string) || 'application/octet-stream';
+    const id = attachment.id as string;
+
+    // Build metadata object without contentBytes to avoid duplication
+    const metadata: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(attachment)) {
+      if (key !== 'contentBytes') {
+        metadata[key] = value;
+      }
+    }
+
+    content.push({
+      type: 'text',
+      text: JSON.stringify(metadata, null, 2),
+    });
+
+    if (contentBytes) {
+      const messageId = (params['message-id'] as string) || 'unknown';
+      const uri = `msgraph://mail/messages/${messageId}/attachments/${id}/${encodeURIComponent(name)}`;
+
+      content.push({
+        type: 'resource',
+        resource: {
+          uri,
+          mimeType: contentType,
+          blob: contentBytes,
+        },
+      });
+    }
+  }
+
+  return content;
 }
 
 async function executeGraphTool(
@@ -342,10 +398,24 @@ async function executeGraphTool(
     }
 
     // Convert McpResponse to CallToolResult with the correct structure
-    const content: ContentItem[] = response.content.map((item) => ({
-      type: 'text' as const,
-      text: item.text,
-    }));
+    let content: ContentItem[];
+
+    if (config?.returnsAttachments && response.content?.[0]?.text) {
+      try {
+        const parsed = JSON.parse(response.content[0].text);
+        content = extractAttachmentResources(parsed, params);
+      } catch {
+        content = response.content.map((item) => ({
+          type: 'text' as const,
+          text: item.text,
+        }));
+      }
+    } else {
+      content = response.content.map((item) => ({
+        type: 'text' as const,
+        text: item.text,
+      }));
+    }
 
     return {
       content,

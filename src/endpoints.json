@@ -106,13 +106,15 @@
     "pathPattern": "/me/messages/{message-id}/attachments",
     "method": "get",
     "toolName": "list-mail-attachments",
-    "scopes": ["Mail.Read"]
+    "scopes": ["Mail.Read"],
+    "returnsAttachments": true
   },
   {
     "pathPattern": "/me/messages/{message-id}/attachments/{attachment-id}",
     "method": "get",
     "toolName": "get-mail-attachment",
-    "scopes": ["Mail.Read"]
+    "scopes": ["Mail.Read"],
+    "returnsAttachments": true
   },
   {
     "pathPattern": "/me/messages/{message-id}/attachments/{attachment-id}",
