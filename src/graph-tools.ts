@@ -24,6 +24,7 @@ interface EndpointConfig {
   skipEncoding?: string[]; // Parameter names that should NOT be URL-encoded (for function-style API calls)
   contentType?: string;
   returnsAttachments?: boolean; // Response contains attachment objects with contentBytes to return as resource parts
+  returnsContent?: boolean; // Response is document content (e.g. HTML) to return as a resource text part
 }
 
 const endpointsData = JSON.parse(
@@ -137,6 +138,37 @@ export function extractAttachmentResources(
   }
 
   return content;
+}
+
+export function formatContentAsResource(
+  responseText: string,
+  params: Record<string, unknown>
+): ContentItem[] {
+  // The graph-client wraps non-JSON responses as { message: 'OK!', rawResponse: text }
+  // Extract the actual content from that wrapper
+  let rawContent = responseText;
+  try {
+    const parsed = JSON.parse(responseText);
+    if (parsed.rawResponse) {
+      rawContent = parsed.rawResponse;
+    }
+  } catch {
+    // Not JSON — use as-is (raw content passed through directly)
+  }
+
+  const pageId = (params['onenotePage-id'] as string) || 'unknown';
+  const uri = `msgraph://onenote/pages/${pageId}/content`;
+
+  return [
+    {
+      type: 'resource',
+      resource: {
+        uri,
+        mimeType: 'text/html',
+        text: rawContent,
+      },
+    },
+  ];
 }
 
 async function executeGraphTool(
@@ -410,6 +442,8 @@ async function executeGraphTool(
           text: item.text,
         }));
       }
+    } else if (config?.returnsContent && response.content?.[0]?.text) {
+      content = formatContentAsResource(response.content[0].text, params);
     } else {
       content = response.content.map((item) => ({
         type: 'text' as const,

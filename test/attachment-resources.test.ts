@@ -13,7 +13,7 @@ vi.mock('../src/generated/client.js', () => ({
   },
 }));
 
-import { extractAttachmentResources } from '../src/graph-tools.js';
+import { extractAttachmentResources, formatContentAsResource } from '../src/graph-tools.js';
 
 describe('extractAttachmentResources', () => {
   const baseParams = { 'message-id': 'msg-123' };
@@ -229,5 +229,59 @@ describe('extractAttachmentResources', () => {
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('text');
     });
+  });
+});
+
+describe('formatContentAsResource', () => {
+  it('should extract HTML from graph-client rawResponse wrapper', () => {
+    const html = '<html><body><h1>My OneNote Page</h1></body></html>';
+    const responseText = JSON.stringify({ message: 'OK!', rawResponse: html });
+    const params = { 'onenotePage-id': 'page-abc' };
+
+    const result = formatContentAsResource(responseText, params);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      type: 'resource',
+      resource: {
+        uri: 'msgraph://onenote/pages/page-abc/content',
+        mimeType: 'text/html',
+        text: html,
+      },
+    });
+  });
+
+  it('should handle raw HTML that is not JSON-wrapped', () => {
+    const html = '<html><body><p>Direct HTML</p></body></html>';
+    const params = { 'onenotePage-id': 'page-xyz' };
+
+    const result = formatContentAsResource(html, params);
+
+    expect(result).toHaveLength(1);
+    const resource = result[0] as any;
+    expect(resource.type).toBe('resource');
+    expect(resource.resource.text).toBe(html);
+    expect(resource.resource.mimeType).toBe('text/html');
+    expect(resource.resource.uri).toBe('msgraph://onenote/pages/page-xyz/content');
+  });
+
+  it('should use "unknown" when page ID is missing', () => {
+    const responseText = JSON.stringify({ message: 'OK!', rawResponse: '<html></html>' });
+
+    const result = formatContentAsResource(responseText, {});
+
+    const resource = result[0] as any;
+    expect(resource.resource.uri).toBe('msgraph://onenote/pages/unknown/content');
+  });
+
+  it('should pass through JSON without rawResponse as-is', () => {
+    const jsonText = JSON.stringify({ someField: 'value' });
+    const params = { 'onenotePage-id': 'page-1' };
+
+    const result = formatContentAsResource(jsonText, params);
+
+    // No rawResponse field, so the entire JSON string becomes the content
+    const resource = result[0] as any;
+    expect(resource.resource.text).toBe(jsonText);
   });
 });
