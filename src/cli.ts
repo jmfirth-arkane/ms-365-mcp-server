@@ -47,6 +47,7 @@ program
   .option('--work-mode', 'Alias for --org-mode')
   .option('--force-work-scopes', 'Backwards compatibility alias for --org-mode (deprecated)')
   .option('--toon', '(experimental) Enable TOON output format for 30-60% token reduction')
+  .option('--resource-parts', 'Return file/content data as MCP resource parts instead of JSON text')
   .option('--discovery', 'Enable runtime tool discovery and loading (experimental feature)')
   .option('--cloud <type>', 'Microsoft cloud environment: global (default) or china (21Vianet)')
   .option(
@@ -72,6 +73,7 @@ export interface CommandOptions {
   workMode?: boolean;
   forceWorkScopes?: boolean;
   toon?: boolean;
+  resourceParts?: boolean;
   discovery?: boolean;
   cloud?: string;
   enableDynamicRegistration?: boolean;
@@ -131,6 +133,10 @@ export function parseArgs(): CommandOptions {
 
   if (process.env.MS365_MCP_OUTPUT_FORMAT === 'toon') {
     options.toon = true;
+  }
+
+  if (process.env.MS365_MCP_RESOURCE_PARTS === 'true' || process.env.MS365_MCP_RESOURCE_PARTS === '1') {
+    options.resourceParts = true;
   }
 
   // Handle cloud type - CLI option takes precedence over environment variable

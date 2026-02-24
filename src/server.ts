@@ -77,7 +77,8 @@ class MicrosoftGraphServer {
         server,
         this.graphClient!,
         this.options.readOnly,
-        this.options.orgMode
+        this.options.orgMode,
+        this.options.resourceParts
       );
     } else {
       registerGraphTools(
@@ -85,7 +86,8 @@ class MicrosoftGraphServer {
         this.graphClient!,
         this.options.readOnly,
         this.options.enabledTools,
-        this.options.orgMode
+        this.options.orgMode,
+        this.options.resourceParts
       );
     }
 

@@ -473,6 +473,7 @@ When running as an MCP server, the following options can be used:
 --preset <names>  Use preset tool categories (comma-separated). See "Tool Presets" section above
 --list-presets    List all available presets and exit
 --toon            (experimental) Enable TOON output format for 30-60% token reduction
+--resource-parts  Return file/content data as MCP resource parts instead of JSON text
 --discovery       (experimental) Start with search-tools + execute-tool only
 ```
 
@@ -483,6 +484,7 @@ Environment variables:
 - `MS365_MCP_ORG_MODE=true|1`: Enable organization/work mode (alternative to --org-mode flag)
 - `MS365_MCP_FORCE_WORK_SCOPES=true|1`: Backwards compatibility for MS365_MCP_ORG_MODE
 - `MS365_MCP_OUTPUT_FORMAT=toon`: Enable TOON output format (alternative to --toon flag)
+- `MS365_MCP_RESOURCE_PARTS=true|1`: Return file/content data as MCP resource parts (alternative to --resource-parts flag)
 - `MS365_MCP_CLOUD_TYPE=global|china`: Microsoft cloud environment (alternative to --cloud flag)
 - `LOG_LEVEL`: Set logging level (default: 'info')
 - `SILENT=true|1`: Disable console output

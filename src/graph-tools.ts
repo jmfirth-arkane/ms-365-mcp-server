@@ -175,7 +175,8 @@ async function executeGraphTool(
   tool: (typeof api.endpoints)[0],
   config: EndpointConfig | undefined,
   graphClient: GraphClient,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  resourceParts: boolean = false
 ): Promise<CallToolResult> {
   logger.info(`Tool ${tool.alias} called with params: ${JSON.stringify(params)}`);
   try {
@@ -432,7 +433,7 @@ async function executeGraphTool(
     // Convert McpResponse to CallToolResult with the correct structure
     let content: ContentItem[];
 
-    if (config?.returnsAttachments && response.content?.[0]?.text) {
+    if (resourceParts && config?.returnsAttachments && response.content?.[0]?.text) {
       try {
         const parsed = JSON.parse(response.content[0].text);
         content = extractAttachmentResources(parsed, params);
@@ -442,7 +443,7 @@ async function executeGraphTool(
           text: item.text,
         }));
       }
-    } else if (config?.returnsContent && response.content?.[0]?.text) {
+    } else if (resourceParts && config?.returnsContent && response.content?.[0]?.text) {
       content = formatContentAsResource(response.content[0].text, params);
     } else {
       content = response.content.map((item) => ({
@@ -477,7 +478,8 @@ export function registerGraphTools(
   graphClient: GraphClient,
   readOnly: boolean = false,
   enabledToolsPattern?: string,
-  orgMode: boolean = false
+  orgMode: boolean = false,
+  resourceParts: boolean = false
 ): number {
   let enabledToolsRegex: RegExp | undefined;
   if (enabledToolsPattern) {
@@ -577,7 +579,7 @@ export function registerGraphTools(
           destructiveHint: ['POST', 'PATCH', 'DELETE'].includes(tool.method.toUpperCase()),
           openWorldHint: true, // All tools call Microsoft Graph API
         },
-        async (params) => executeGraphTool(tool, endpointConfig, graphClient, params)
+        async (params) => executeGraphTool(tool, endpointConfig, graphClient, params, resourceParts)
       );
       registeredCount++;
     } catch (error) {
@@ -622,7 +624,8 @@ export function registerDiscoveryTools(
   server: McpServer,
   graphClient: GraphClient,
   readOnly: boolean = false,
-  orgMode: boolean = false
+  orgMode: boolean = false,
+  resourceParts: boolean = false
 ): void {
   const toolsRegistry = buildToolsRegistry(readOnly, orgMode);
   logger.info(`Discovery mode: ${toolsRegistry.size} tools available in registry`);
@@ -736,7 +739,7 @@ export function registerDiscoveryTools(
         };
       }
 
-      return executeGraphTool(toolData.tool, toolData.config, graphClient, parameters);
+      return executeGraphTool(toolData.tool, toolData.config, graphClient, parameters, resourceParts);
     }
   );
 }
