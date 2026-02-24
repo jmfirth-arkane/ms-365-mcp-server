@@ -1,0 +1,10 @@
+node_modules
+.git
+dist
+test
+.token-cache.json
+.selected-account.json
+*.md
+.claude
+.env
+.env.*
